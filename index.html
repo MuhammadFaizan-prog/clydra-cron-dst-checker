@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cron DST Auditor by Clydara: know what your crontab does when the clocks change</title>
+    <meta name="description" content="Paste a crontab, pick the scheduler and its time zone, and see which jobs a daylight saving change will skip, delay or run twice, on the real upcoming dates. Runs in your browser; nothing is uploaded." />
+    <link rel="icon" type="image/png" href="/clydara-logo.png" />
+    <meta name="theme-color" content="#faf8f4" />
+  </head>
+  <body class="landing">
+    <a class="skip" href="#main">Skip to content</a>
+    <header class="site-head">
+      <div class="wrap head-row">
+        <a class="ident" href="/" aria-label="Cron DST Auditor, overview">
+          <svg class="ident-mark" viewBox="0 0 32 32" width="28" height="28" aria-hidden="true"><rect width="32" height="32" rx="6" fill="#1f1d1a"/><path d="M6 20h7M19 20h7" stroke="#faf8f4" stroke-width="2.4" stroke-linecap="round"/><path d="M13 20l3-8 3 8" stroke="#f0a020" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span>Cron DST Auditor</span>
+        </a>
+        <button class="menu-btn" type="button" id="menu-btn" aria-expanded="false" aria-controls="site-nav">Menu</button>
+        <nav class="site-nav" id="site-nav" aria-label="Main">
+          <a href="#example">Example</a>
+          <a href="#how">How it works</a>
+          <a href="#limits">Privacy &amp; limits</a>
+          <a href="#faq">FAQ</a>
+          <a class="by" href="https://www.clydralab.com/" target="_blank" rel="noopener"><img src="/clydara-logo.png" alt="" width="20" height="20" />Built by Clydara</a>
+          <a class="btn btn-dark nav-cta" href="/tool.html">Open the auditor</a>
+        </nav>
+      </div>
+    </header>
+
+    <main id="main">
+      <section class="hero wrap" aria-labelledby="hero-title">
+        <div class="hero-copy">
+          <p class="eyebrow">For crontabs that run on local time</p>
+          <h1 id="hero-title">Know what your schedule does when the clocks change.</h1>
+          <p class="lede">
+            Paste a crontab, choose the scheduler and the time zone it runs in, and see which jobs the next daylight saving
+            changes will skip, delay or run twice, with the exact night and the reason.
+          </p>
+          <div class="cta-row">
+            <a class="btn btn-dark" href="/tool.html" id="hero-open">Open the auditor</a>
+            <a class="btn btn-line" href="/tool.html#example" id="hero-example">Run the sample crontab</a>
+          </div>
+          <p class="hero-note">Runs in this tab. Your crontab is never uploaded.</p>
+        </div>
+
+        <div class="hero-preview" aria-labelledby="pv-title">
+          <div class="pv-head">
+            <h2 id="pv-title" class="pv-title">Sample crontab, <span class="mono">America/New_York</span></h2>
+            <fieldset class="seg" id="pv-model">
+              <legend>Scheduler</legend>
+              <label><input type="radio" name="pv-model" value="vixie" checked /><span>Linux cron</span></label>
+              <label><input type="radio" name="pv-model" value="literal" /><span>Kubernetes</span></label>
+              <label><input type="radio" name="pv-model" value="quartz" /><span>Quartz</span></label>
+            </fieldset>
+          </div>
+          <div id="pv-nights" class="pv-nights" aria-live="polite"></div>
+          <p class="pv-foot">Computed in your browser just now from the sample crontab and your browser's time-zone data. Switch the scheduler: the same lines behave differently.</p>
+        </div>
+      </section>
+
+      <section class="band-section" id="example" aria-labelledby="ex-title">
+        <div class="wrap">
+          <div class="section-head">
+            <h2 id="ex-title">What you get back</h2>
+            <p>Real output for the labelled sample crontab below: every clock change in the next two years, against every job, under Linux cron (Vixie, cronie).</p>
+          </div>
+          <div class="ex-grid">
+            <div class="ex-matrix" id="ex-matrix"></div>
+            <ol class="ex-notes" id="ex-notes"></ol>
+          </div>
+          <details class="ex-source">
+            <summary>Show the sample crontab</summary>
+            <pre id="ex-crontab" class="code"></pre>
+          </details>
+          <p class="ex-cta"><a class="btn btn-line" href="/tool.html#example">Open this sample in the auditor</a></p>
+        </div>
+      </section>
+
+      <section class="wrap how" id="how" aria-labelledby="how-title">
+        <div class="section-head">
+          <h2 id="how-title">How it works</h2>
+          <p>Three inputs, one report. The scheduler choice is the one people skip, and it changes the answer.</p>
+        </div>
+        <ol class="steps">
+          <li>
+            <h3>Paste the crontab</h3>
+            <p>A whole <span class="mono">crontab -l</span>, or bare expressions. Comments, <span class="mono">VAR=value</span> lines and <span class="mono">CRON_TZ=</span> zones are understood; lines it can't read are listed with the reason.</p>
+          </li>
+          <li>
+            <h3>Pick the scheduler and its zone</h3>
+            <p>A clock change creates a <dfn>gap</dfn> (local times that don't exist, when clocks go forward) and an <dfn>overlap</dfn> (an hour that happens twice, when they go back). Schedulers treat both differently:</p>
+          </li>
+          <li>
+            <h3>Read findings, then export</h3>
+            <p>Each job gets its effect on each night, its UTC times before and after, and where possible an hour that avoids the change, with what that does to the everyday timing. Copy Markdown or download CSV.</p>
+          </li>
+        </ol>
+        <div class="model-table-wrap">
+          <table class="model-table" id="model-table">
+            <caption>What each scheduler does with a fixed-time job (no <span class="mono">*</span> in minute or hour), from <span class="mono">audit.ts</span></caption>
+            <thead><tr><th scope="col">Scheduler</th><th scope="col">Time in a gap</th><th scope="col">Time in an overlap</th><th scope="col">Documented in</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="wrap cases" aria-labelledby="cases-title">
+        <div class="section-head">
+          <h2 id="cases-title">Where it helps</h2>
+        </div>
+        <div class="case-list">
+          <article class="case">
+            <h3>A 02:30 database backup on a Debian server in New York</h3>
+            <dl>
+              <dt>Input</dt><dd><span class="mono">30 2 * * * db-backup.sh</span>, zone America/New_York, Linux cron.</dd>
+              <dt>Result</dt><dd>On the spring-forward night 02:30 doesn't exist; cron runs it right after the jump, at 03:00. Nothing happens in November.</dd>
+              <dt>Your call</dt><dd>Is a 30-minute late start acceptable, or move it to 03:30 every day?</dd>
+            </dl>
+          </article>
+          <article class="case">
+            <h3>A Kubernetes CronJob with <span class="mono">timeZone</span> set</h3>
+            <dl>
+              <dt>Input</dt><dd><span class="mono">30 1 * * *</span> invoices, Literal wall clock.</dd>
+              <dt>Result</dt><dd>When clocks go back, 01:30 happens twice and the job fires twice. Under Linux cron it would fire once.</dd>
+              <dt>Your call</dt><dd>Make the job idempotent, move it out of 01:00–01:59, or run it on UTC.</dd>
+            </dl>
+          </article>
+          <article class="case">
+            <h3>A 09:00 job that a team or API in another zone depends on</h3>
+            <dl>
+              <dt>Input</dt><dd><span class="mono">0 9 * * 1-5</span> standup reminder.</dd>
+              <dt>Result</dt><dd>Never skipped or repeated, but it runs at 13:00 UTC in summer and 14:00 UTC in winter, with the switch dates.</dd>
+              <dt>Your call</dt><dd>Keep local time for people, or pin it to UTC for systems.</dd>
+            </dl>
+          </article>
+        </div>
+      </section>
+
+      <section class="wrap limits" id="limits" aria-labelledby="limits-title">
+        <div class="section-head">
+          <h2 id="limits-title">Privacy and limits</h2>
+        </div>
+        <div class="limits-grid">
+          <div>
+            <h3>What stays in your browser</h3>
+            <ul>
+              <li>Everything. Parsing, time-zone maths and exports run in this tab; the page makes no network requests after it loads, and its Content-Security-Policy only allows its own files.</li>
+              <li>Nothing is saved: no account, no storage, no analytics. Closing the tab discards the crontab.</li>
+              <li>Commands are shown only so you can recognise each line.</li>
+            </ul>
+          </div>
+          <div>
+            <h3>What to keep in mind</h3>
+            <ul>
+              <li>Results follow the documented behaviour of three scheduler families. Check your own scheduler and version.</li>
+              <li>Future dates use today's time-zone rules from your browser. Governments sometimes change them.</li>
+              <li>Standard 5-field cron and <span class="mono">@daily</span>-style macros only. No seconds field, no systemd timers, no <span class="mono">L W #</span>.</li>
+              <li>Up to 500 jobs and 200,000 characters per check.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="wrap faq" id="faq" aria-labelledby="faq-title">
+        <div class="section-head">
+          <h2 id="faq-title">Questions</h2>
+        </div>
+        <div class="faq-list">
+          <details>
+            <summary>Which scheduler do I have?</summary>
+            <p>Debian, Ubuntu, RHEL and Fedora <span class="mono">cron</span>/<span class="mono">cronie</span> use the Linux cron rule. Kubernetes CronJobs with <span class="mono">timeZone</span>, and many app libraries, fire on the literal wall clock. Quartz (Java, Quartz.NET, Rundeck) skips a missing time and fires a repeated one once. Each option in the auditor links to its source.</p>
+          </details>
+          <details>
+            <summary>What input does it accept?</summary>
+            <p>The output of <span class="mono">crontab -l</span>, a system crontab without the user column, or bare expressions one per line. <span class="mono">CRON_TZ=Zone</span> applies to the lines after it. Unreadable lines are listed with their line number and the rest are still checked.</p>
+          </details>
+          <details>
+            <summary>How accurate are the dates?</summary>
+            <p>Clock changes come from your browser's own IANA time-zone database and are located to the minute, including midnight changes (Santiago) and 30-minute shifts (Lord Howe). Outcomes follow the scheduler model you pick.</p>
+          </details>
+          <details>
+            <summary>Is a suggested schedule safe to apply?</summary>
+            <p>Not automatically. A suggestion moves the job's hour on every day, not only on change nights. The auditor says exactly how the timing changes; whether that suits your business is your decision.</p>
+          </details>
+          <details>
+            <summary>What do the exports contain?</summary>
+            <p>One row per affected run: line, schedule, command, zone, clock change, affected local times, outcome, severity, scheduler model and suggestion. Markdown for tickets and pull requests, CSV for spreadsheets (formula characters are neutralised).</p>
+          </details>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-foot">
+      <div class="wrap foot-row">
+        <div>
+          <p class="foot-title">Check your crontab before the next change.</p>
+          <a class="btn btn-amber" href="/tool.html">Open the auditor</a>
+        </div>
+        <a class="by by-foot" href="https://www.clydralab.com/" target="_blank" rel="noopener"><img src="/clydara-logo.png" alt="" width="24" height="24" />Built by Clydara</a>
+      </div>
+    </footer>
+    <script type="module" src="/src/landing.ts"></script>
+  </body>
+</html>
