@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Workspace · Cron DST Auditor by Clydara</title>
+    <meta name="description" content="Audit a crontab for daylight saving changes: skipped, delayed and repeated runs, UTC shifts, per job and per night. Runs in your browser." />
+    <link rel="icon" type="image/png" href="/clydara-logo.png" />
+    <meta name="theme-color" content="#faf8f4" />
+  </head>
+  <body class="tool">
+    <a class="skip" href="#crontab">Skip to the crontab</a>
+    <header class="tool-head">
+      <a class="ident" href="/" id="home-link" aria-label="Cron DST Auditor, overview">
+        <svg class="ident-mark" viewBox="0 0 32 32" width="26" height="26" aria-hidden="true"><rect width="32" height="32" rx="6" fill="#1f1d1a"/><path d="M6 20h7M19 20h7" stroke="#faf8f4" stroke-width="2.4" stroke-linecap="round"/><path d="M13 20l3-8 3 8" stroke="#f0a020" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span>Cron DST Auditor</span>
+      </a>
+      <span class="head-sep" aria-hidden="true">/</span>
+      <span class="head-where">Workspace</span>
+      <nav class="tool-nav" aria-label="Main">
+        <a href="#findings" class="jump-findings">Findings</a>
+        <a href="/#how">How it works</a>
+        <a class="by" href="https://www.clydralab.com/" target="_blank" rel="noopener"><img src="/clydara-logo.png" alt="" width="20" height="20" /><span>Built by Clydara</span></a>
+      </nav>
+    </header>
+
+    <main class="ws" id="main">
+      <form class="ws-input" id="form" novalidate aria-label="Crontab and settings">
+        <section class="pane-sec" aria-labelledby="in-title">
+          <div class="sec-head">
+            <h2 id="in-title"><span class="sec-k">Input</span> Crontab</h2>
+            <div class="sec-actions">
+              <button type="button" class="btn btn-small btn-line" id="example">Load sample</button>
+              <button type="button" class="btn btn-small btn-ghost" id="clear">Clear</button>
+            </div>
+          </div>
+          <label class="lbl" for="crontab">Crontab or cron expressions, one per line</label>
+          <textarea id="crontab" rows="11" spellcheck="false" autocomplete="off" wrap="off" aria-describedby="crontab-help crontab-error"
+            placeholder="30 2 * * *  /usr/local/bin/backup.sh&#10;@daily      /opt/report.sh"></textarea>
+          <p class="help" id="crontab-help">Comments, <code>VAR=value</code> and <code>CRON_TZ=Zone</code> lines are understood. Commands only help you recognise each line.</p>
+          <p class="field-error" id="crontab-error" hidden></p>
+          <p class="parse-line" id="parse-line" aria-live="polite"></p>
+        </section>
+
+        <section class="pane-sec" aria-labelledby="set-title">
+          <div class="sec-head">
+            <h2 id="set-title"><span class="sec-k">Settings</span> Scheduler and zone</h2>
+          </div>
+          <fieldset class="models" id="model" aria-describedby="model-why">
+            <legend>Scheduler</legend>
+            <p class="help" id="model-why">Decides what happens to a run whose time is missing or repeated. The same line can be late, skipped or doubled depending on this choice.</p>
+            <label class="model-opt"><input type="radio" name="model" value="vixie" checked />
+              <span class="mo-body"><span class="mo-name">Linux cron</span><span class="mo-ex">Vixie / ISC cron, cronie: Debian, Ubuntu, RHEL, Fedora</span></span></label>
+            <label class="model-opt"><input type="radio" name="model" value="literal" />
+              <span class="mo-body"><span class="mo-name">Literal wall clock</span><span class="mo-ex">Kubernetes CronJob with timeZone, Forgejo Actions, many libraries</span></span></label>
+            <label class="model-opt"><input type="radio" name="model" value="quartz" />
+              <span class="mo-body"><span class="mo-name">Skip missing, fire once</span><span class="mo-ex">Quartz CronTrigger: Java, Quartz.NET, Rundeck</span></span></label>
+            <p class="model-rule" id="model-help"></p>
+          </fieldset>
+          <div class="set-row">
+            <div class="fld">
+              <label class="lbl" for="zone">Scheduler time zone</label>
+              <input type="text" id="zone" list="zones" autocomplete="off" spellcheck="false" aria-describedby="zone-help zone-error" />
+              <datalist id="zones"></datalist>
+              <p class="help" id="zone-help">The zone the scheduler runs in, often the server's. IANA name, e.g. <code>Europe/London</code>.</p>
+              <p class="field-error" id="zone-error" hidden></p>
+            </div>
+            <div class="fld fld-narrow">
+              <label class="lbl" for="years">Check the next</label>
+              <select id="years">
+                <option value="1">12 months</option>
+                <option value="2" selected>2 years</option>
+                <option value="5">5 years</option>
+              </select>
+            </div>
+          </div>
+          <div class="run-row">
+            <button type="submit" class="btn btn-dark" id="run">Check schedules</button>
+            <span id="status" class="status" role="status" aria-live="polite"></span>
+          </div>
+          <p class="help help-live">Results also update as you type or change a setting.</p>
+        </section>
+      </form>
+
+      <section class="ws-out" id="findings" aria-labelledby="out-title" tabindex="-1">
+        <div class="out-head">
+          <h2 id="out-title"><span class="sec-k">Findings</span> <span id="out-sub">Nothing checked yet</span></h2>
+          <div class="export" id="export" hidden>
+            <button type="button" class="btn btn-small btn-line" id="copy-md">Copy Markdown</button>
+            <button type="button" class="btn btn-small btn-line" id="download-csv">Download CSV</button>
+            <span id="copy-status" class="copy-status" role="status" aria-live="polite"></span>
+          </div>
+        </div>
+
+        <div id="error" class="alert" role="alert" hidden></div>
+
+        <div class="empty" id="empty">
+          <h3>Paste a crontab to see what each clock change does to it.</h3>
+          <p>You'll get a summary of the effects found, a timeline of the clock changes in your zone, and every job with its evidence.</p>
+          <button type="button" class="btn btn-line" id="example-empty">Load the sample crontab</button>
+        </div>
+
+        <div id="results" hidden>
+          <div class="summary" id="summary" aria-label="Effects found"></div>
+          <div id="issues"></div>
+          <div class="timeline-sec">
+            <div class="sub-head">
+              <h3>Clock changes</h3>
+              <p class="help" id="tl-help">Select a change to see only the jobs it affects.</p>
+            </div>
+            <div class="timeline" id="timeline"></div>
+          </div>
+          <div class="jobs-sec">
+            <div class="jobs-col">
+              <div class="sub-head">
+                <h3 id="jobs-title">Jobs</h3>
+                <button type="button" class="btn btn-small btn-ghost" id="show-all" hidden>Show all jobs</button>
+              </div>
+              <ul class="job-list" id="jobs" aria-labelledby="jobs-title"></ul>
+            </div>
+            <div class="inspector" id="inspector" tabindex="-1" aria-live="polite" aria-label="Selected job"></div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="tool-foot">
+      <span>Runs in this tab. Nothing is uploaded or saved.</span>
+      <a class="by" href="https://www.clydralab.com/" target="_blank" rel="noopener"><img src="/clydara-logo.png" alt="" width="18" height="18" />Built by Clydara</a>
+    </footer>
+    <script type="module" src="/src/tool.ts"></script>
+  </body>
+</html>
