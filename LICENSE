@@ -1,0 +1,8 @@
+Copyright (c) 2026 Clydara. All rights reserved.
+
+This source code is proprietary and provided privately for review. No license to
+use, copy, modify, or distribute it is granted without written permission from
+Clydara (https://www.clydralab.com/).
+
+Third-party development tools listed in package.json are used under their own
+licenses (MIT, BSD-2-Clause, Apache-2.0) and are not redistributed in the built site.
